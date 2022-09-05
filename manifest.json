@@ -1,0 +1,16 @@
+{
+  "domain": "vision",
+  "name": "GEF Vision",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/vision",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@oh5fsz"
+  ],
+  "iot_class": "cloud_polling",
+  "version": "0.1.0"
+}

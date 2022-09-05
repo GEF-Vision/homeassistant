@@ -1,0 +1,23 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "Unexpected error",
+            "invalid_parameter": "Invalid parameter"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "password": "Password",
+                    "username": "Username",
+                    "plant_uuid": "Plant UUID",
+                    "poll_interval_s": "Poll interval in seconds (min. 10)"
+                }
+            }
+        }
+    }
+}
