@@ -1,0 +1,22 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Käyttäjä on jo määritelty"
+        },
+        "error": {
+            "cannot_connect": "Yhdistäminen Visioniin epäonnistui",
+            "invalid_auth": "Kirjautuminen ei onnistunut",
+            "unknown": "Odottamaton virhe",
+            "invalid_parameter": "Virheellinen parametri"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "password": "Salasana",
+                    "username": "Käyttäjätunnus",
+                    "scan_interval": "Hakuväli sekunteina (min. 10 s)"
+                }
+            }
+        }
+    }
+}
