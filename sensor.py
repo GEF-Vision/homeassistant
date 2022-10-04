@@ -33,11 +33,19 @@ class VisionAPISensor(CoordinatorEntity, SensorEntity):
             return None
         try:
             data = data.to_dict().get(self.entity_description.json_key)
-            return reduce(
+            if not data:
+                _LOGGER.warning("No data")
+            path = self.entity_description.json_path.split("-")
+            value = reduce(
                 operator.getitem,
-                self.entity_description.json_path.split("-"),
+                path,
                 data,
             )
+            if value is None:
+                _LOGGER.warning(
+                    f"Could not find value for {self.entity_description.json_key}/{path}"
+                )
+            return value
         except Exception as e:
             _LOGGER.exception(e)
             return None
