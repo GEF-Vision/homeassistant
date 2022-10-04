@@ -41,7 +41,7 @@ class VisionPlantCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name="GEFVision",
+            name=f"GEF Vision {self.uuid}",
             update_interval=timedelta(seconds=self.scan_interval),
         )
 

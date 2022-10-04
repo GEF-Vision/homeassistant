@@ -18,7 +18,7 @@ class VisionAPISensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, description, plant_uuid):
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = f"{description.name}-{plant_uuid}"
+        self._attr_name = f"{description.name}"
         self._attr_unique_id = f"{plant_uuid}-{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.uuid)},
