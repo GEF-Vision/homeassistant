@@ -1,5 +1,4 @@
 """Constants for the GEF Vision integration."""
-
 from dataclasses import dataclass
 from homeassistant.const import ENERGY_WATT_HOUR, POWER_WATT
 from homeassistant.components.sensor import (
@@ -13,7 +12,8 @@ DOMAIN = "vision"
 CLIENT = "client"
 HAS_ENERGYMETER = "has_energymeter"
 HAS_INVERTER = "has_inverter"
-POLL_INTERVAL = 30
+DEFAULT_SCAN_INTERVAL = 30
+VISION_BASE_URL = "https://vision.gef.fi"
 
 
 @dataclass
@@ -53,48 +53,16 @@ PRODUCTION_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         key="production-lifetime",
         json_key="production",
         json_path="energy-lifetime",
-        name="Total produced energy",
+        name="Produced energy total",
         native_unit_of_measurement=ENERGY_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     VisionSensorEntityDescription(
-        key="production-last_24h",
-        json_key="production",
-        json_path="energy-last_24h",
-        name="Production last 24 hours",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="production-last_7d",
-        json_key="production",
-        json_path="energy-last_7d",
-        name="Production last 7 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="production-last_31d",
-        json_key="production",
-        json_path="energy-last_31d",
-        name="Production last 31 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="production-last_365d",
-        json_key="production",
-        json_path="energy-last_365d",
-        name="Production last 365 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
         key="production-now",
         json_key="production",
         json_path="power",
-        name="Current production",
+        name="Production now",
         native_unit_of_measurement=POWER_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -106,7 +74,7 @@ CONSUMPTION_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         key="consumption-now",
         json_key="consumption",
         json_path="power",
-        name="Current consumption",
+        name="Consumption now",
         native_unit_of_measurement=POWER_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -139,42 +107,10 @@ CONSUMPTION_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         key="consumption-lifetime",
         json_key="consumption",
         json_path="energy-lifetime",
-        name="Total consumed energy",
+        name="Consumed energy total",
         native_unit_of_measurement=ENERGY_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-    ),
-    VisionSensorEntityDescription(
-        key="consumption-last_24h",
-        json_key="consumption",
-        json_path="energy-last_24h",
-        name="Consumption last 24 hours",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="consumption-last_7d",
-        json_key="consumption",
-        json_path="energy-last_7d",
-        name="Consumption last 7 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="consumption-last_31d",
-        json_key="consumption",
-        json_path="energy-last_31d",
-        name="Consumption last 31 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="consumption-last_365d",
-        json_key="consumption",
-        json_path="energy-last_365d",
-        name="Consumption last 365 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
     ),
 ]
 
@@ -184,7 +120,7 @@ GRID_INTERFACE_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         key="power-import-now",
         json_key="grid_interface",
         json_path="power-import",
-        name="Current import power",
+        name="Import power",
         native_unit_of_measurement=POWER_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -222,34 +158,10 @@ GRID_INTERFACE_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         device_class=SensorDeviceClass.ENERGY,
     ),
     VisionSensorEntityDescription(
-        key="energy-import-last_24h",
-        json_key="grid_interface",
-        json_path="energy-import-last_24h",
-        name="Imported energy last 24 hours",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="energy-import-last_7d",
-        json_key="grid_interface",
-        json_path="energy-import-last_7d",
-        name="Imported energy last 7 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="energy-import-last_365d",
-        json_key="grid_interface",
-        json_path="energy-import-last_365d",
-        name="Imported energy last 365 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
         key="energy-import-lifetime",
         json_key="grid_interface",
         json_path="energy-import-lifetime",
-        name="Total imported energy",
+        name="Imported energy total",
         native_unit_of_measurement=ENERGY_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -259,7 +171,7 @@ GRID_INTERFACE_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         key="power-export-now",
         json_key="grid_interface",
         json_path="power-export",
-        name="Current export power",
+        name="Export power",
         native_unit_of_measurement=POWER_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -289,34 +201,10 @@ GRID_INTERFACE_ENTITY_DESCRIPTIONS: list[VisionSensorEntityDescription] = [
         device_class=SensorDeviceClass.ENERGY,
     ),
     VisionSensorEntityDescription(
-        key="energy-export-last_24h",
-        json_key="grid_interface",
-        json_path="energy-export-last_24h",
-        name="Exported energy last 24 hours",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="energy-export-last_7d",
-        json_key="grid_interface",
-        json_path="energy-export-last_7d",
-        name="Exported energy last 7 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
-        key="energy-export-last_365d",
-        json_key="grid_interface",
-        json_path="energy-export-last_365d",
-        name="Exported energy last 365 days",
-        native_unit_of_measurement=ENERGY_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
-    VisionSensorEntityDescription(
         key="energy-export-lifetime",
         json_key="grid_interface",
         json_path="energy-export-lifetime",
-        name="Total exported energy",
+        name="Exported energy total",
         native_unit_of_measurement=ENERGY_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,

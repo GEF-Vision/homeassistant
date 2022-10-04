@@ -15,40 +15,45 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class VisionAPISensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, description):
+    def __init__(self, coordinator, description, plant_uuid):
         super().__init__(coordinator)
-        key = description.key.replace("-", "_")
         self.entity_description = description
-        self._attr_name = f"{coordinator.name} {description.name}"
-        self._attr_unique_id = f"{coordinator.unique_id}_{key}"
+        self._attr_name = f"{description.name}-{plant_uuid}"
+        self._attr_unique_id = f"{plant_uuid}-{description.key}"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.unique_id)},
+            identifiers={(DOMAIN, coordinator.uuid)},
             manufacturer="GreenEnergy Finland Oy",
             name=coordinator.name,
         )
 
     @property
     def native_value(self):
-        return reduce(
-            operator.getitem,
-            self.entity_description.json_path.split("-"),
-            self.coordinator.values.get(self.entity_description.json_key, {}),
-        )
+        data = self.coordinator.current_values
+        if not data:
+            return None
+        try:
+            data = data.to_dict().get(self.entity_description.json_key)
+            return reduce(
+                operator.getitem,
+                self.entity_description.json_path.split("-"),
+                data,
+            )
+        except Exception as e:
+            _LOGGER.exception(e)
+            return None
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    if coordinator.capabilities["has_energymeter"]:
-        async_add_entities(
-            VisionAPISensor(coordinator, description)
-            for description in GRID_INTERFACE_ENTITY_DESCRIPTIONS
-        )
-        async_add_entities(
-            VisionAPISensor(coordinator, description)
-            for description in CONSUMPTION_ENTITY_DESCRIPTIONS
-        )
-    if coordinator.capabilities["has_production"]:
-        async_add_entities(
-            VisionAPISensor(coordinator, description)
-            for description in PRODUCTION_ENTITY_DESCRIPTIONS
-        )
+    base = hass.data[DOMAIN][entry.entry_id]
+    entities = []
+    for coordinator in base.plant_coordinators:
+        uuid = coordinator.uuid
+        if coordinator.has_energymeter:
+            for description in GRID_INTERFACE_ENTITY_DESCRIPTIONS:
+                entities.append(VisionAPISensor(coordinator, description, uuid))
+            for description in CONSUMPTION_ENTITY_DESCRIPTIONS:
+                entities.append(VisionAPISensor(coordinator, description, uuid))
+        if coordinator.has_production:
+            for description in PRODUCTION_ENTITY_DESCRIPTIONS:
+                entities.append(VisionAPISensor(coordinator, description, uuid))
+    async_add_entities(entities)
