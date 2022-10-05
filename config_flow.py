@@ -37,9 +37,7 @@ GEF_VISION_DATA_SCHEMA = {
 }
 
 GEF_VISION_REAUTH_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_PASSWORD, description="Password"): str
-    }
+    {vol.Required(CONF_PASSWORD, description="Password"): str}
 )
 GEF_VISION_USER_SCHEMA = vol.Schema(GEF_VISION_DATA_SCHEMA)
 
@@ -57,42 +55,54 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._password = None
         self._scan_interval = 0
 
-    async def _async_show_error_form(self, errors: dict, error_step: str, schema: vol.Schema) -> FlowResult:
+    async def _async_show_error_form(
+        self, errors: dict, error_step: str, schema: vol.Schema
+    ) -> FlowResult:
         return self.async_show_form(
-            step_id=error_step,
-            data_schema=schema,
-            errors=errors
+            step_id=error_step, data_schema=schema, errors=errors
         )
 
     async def _async_validate_config(self) -> FlowResult:
         """Attempts to connect to GEF Vision using the provided credentials"""
         client = Client(VISION_BASE_URL)
-        auth = AuthToken(
-            username=self._username, password=self._password, token=""
-        )
+        auth = AuthToken(username=self._username, password=self._password, token="")
 
         if self._scan_interval < 10:
-            return await self._async_show_error_form({'base': 'invalid_parameter'}, 'user', GEF_VISION_USER_SCHEMA)
+            return await self._async_show_error_form(
+                {"base": "invalid_parameter"}, "user", GEF_VISION_USER_SCHEMA
+            )
 
         try:
-            token = await api_v2_auth_token_create.asyncio(client=client, json_body=auth)
+            token = await api_v2_auth_token_create.asyncio(
+                client=client, json_body=auth
+            )
             if not token:
-                return await self._async_show_error_form({'base': 'invalid_auth'}, 'user', GEF_VISION_USER_SCHEMA)
+                return await self._async_show_error_form(
+                    {"base": "invalid_auth"}, "user", GEF_VISION_USER_SCHEMA
+                )
         except (ConnectError, ConnectTimeout) as exc:
-            return await self._async_show_error_form({'base': 'cannot_connect'}, 'user', GEF_VISION_USER_SCHEMA)
+            return await self._async_show_error_form(
+                {"base": "cannot_connect"}, "user", GEF_VISION_USER_SCHEMA
+            )
 
         if self._reauth:
             entry = await self.async_set_unique_id(self._username.lower())
             if entry:
                 self.hass.config_entries.async_update_entry(
-                    entry,
-                    data={**entry.data, CONF_PASSWORD: self._password}
+                    entry, data={**entry.data, CONF_PASSWORD: self._password}
                 )
                 self.hass.async_create_task(
                     self.hass.config_entries.async_reload(entry.entry_id)
                 )
                 return self.async_abort(reason="reauth_successful")
-        return self.async_create_entry(title=self._username.lower(), data={CONF_USERNAME: self._username, CONF_PASSWORD: self._password, CONF_SCAN_INTERVAL: self._scan_interval})
+        return self.async_create_entry(
+            title=self._username.lower(),
+            data={
+                CONF_USERNAME: self._username,
+                CONF_PASSWORD: self._password,
+                CONF_SCAN_INTERVAL: self._scan_interval,
+            },
+        )
 
     async def async_step_user(self, info: dict[str, Any]) -> FlowResult:
         if info is not None:
@@ -105,9 +115,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._password = info[CONF_PASSWORD]
             return await self._async_validate_config()
 
-        return self.async_show_form(
-            step_id="user", data_schema=GEF_VISION_USER_SCHEMA
-        )
+        return self.async_show_form(step_id="user", data_schema=GEF_VISION_USER_SCHEMA)
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Perform reauth upon an API authentication error."""
@@ -122,9 +130,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Confirm reauth dialog."""
         if not user_input:
             return self.async_show_form(
-                step_id="reauth_confirm",
-                data_schema=GEF_VISION_REAUTH_SCHEMA
+                step_id="reauth_confirm", data_schema=GEF_VISION_REAUTH_SCHEMA
             )
         self._password = user_input[CONF_PASSWORD]
         return await self._async_validate_config()
-
