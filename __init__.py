@@ -31,34 +31,26 @@ class GEFVision:
         self.plant_coordinators: List[VisionPlantCoordinator] = []
         self.config = entry
         self.hass = hass
+        self.client = None
 
     async def initialize(self):
-        auth = AuthToken(
-            username=self.config.data[CONF_USERNAME],
-            password=self.config.data[CONF_PASSWORD],
-            token="",
-        )
-        c = Client(VISION_BASE_URL)
         try:
-            token = await api_v2_auth_token_create.asyncio_detailed(
-                client=c, json_body=auth
+            self.client = await VisionPlantCoordinator.authenticate_user(
+                self.config.data[CONF_USERNAME], self.config.data[CONF_PASSWORD]
             )
-            if token.status_code != 200:
+            if not self.client:
                 raise ConfigEntryAuthFailed(
                     f"Invalid Vision credentials for {self.config.data[CONF_USERNAME]}"
                 )
-            self.client = AuthenticatedClient(
-                base_url=VISION_BASE_URL, token=token.parsed.token, prefix="Token"
-            )
-        except ConnectError:
+        except ConnectError as err:
             raise ConfigEntryNotReady(
-                f"Authentication failed for {self.config.data[CONF_USERNAME]}"
-            )
+                f"Connection failed with Vision - cannot authenticate: {self.config.data[CONF_USERNAME]}"
+            ) from err
         # Fetch plant list
         try:
             data = await api_v2_plant_list.asyncio(client=self.client)
             if not data or not data.results:
-                _LOGGER.warn(f"User has no plants!")
+                _LOGGER.error("User has no plants!")
             # Create coordinators
             for plant in data.results:
                 has_production = True if getattr(plant, "production") else False
@@ -74,8 +66,10 @@ class GEFVision:
                 )
                 await coordinator.async_config_entry_first_refresh()
                 self.plant_coordinators.append(coordinator)
-        except ConnectError:
-            raise ConfigEntryNotReady(f"Connection failed to {VISION_BASE_URL}")
+        except ConnectError as err:
+            raise ConfigEntryNotReady(
+                f"Connection failed to {VISION_BASE_URL}"
+            ) from err
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
