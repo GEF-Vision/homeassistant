@@ -1,7 +1,8 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Käyttäjä on jo määritelty"
+            "already_configured": "Käyttäjä on jo määritelty",
+            "reauth_successful": "Uudelleenkirjautuminen onnistui"
         },
         "error": {
             "cannot_connect": "Yhdistäminen Visioniin epäonnistui",
@@ -15,6 +16,11 @@
                     "password": "Salasana",
                     "username": "Käyttäjätunnus",
                     "scan_interval": "Hakuväli sekunteina (min. 10 s)"
+                }
+            },
+            "reauth_confirm": {
+                "data": {
+                    "password": "Salasana"
                 }
             }
         }
