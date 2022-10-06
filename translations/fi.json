@@ -15,6 +15,7 @@
                 "data": {
                     "password": "Salasana",
                     "username": "Käyttäjätunnus",
+                    "unique_id": "Voimalan UUID-tunniste",
                     "scan_interval": "Hakuväli sekunteina (min. 10 s)"
                 }
             },

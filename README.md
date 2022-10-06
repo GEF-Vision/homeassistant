@@ -12,10 +12,11 @@ After the integration has been installed (and Home Assistant restarted), the int
 ## Required data in config flow
 - Username: GEF Vision Username
 - Password: GEF Vision Password
+- Plant UUID: Unique id for the plant. Can be obtained from the monitoring URL.
 - Poll interval: Data update interval in seconds. Default is 30 seconds, minimum is 10 seconds.
 
-## Multiple plants
-This add-on supports user accounts with multiple power plants. Each plant found from the user account is added to Home Assistant as a separate device.
+## Disclaimer
+This integration is in active development and still work-in-progress. Breaking changes may occur. Use at your own risk!
 
 ## Support
 If you have any problems with the integration or you find a bug, please open an issue to GitHub or send an e-mail to [tuki@gef.fi](tuki@gef.fi)

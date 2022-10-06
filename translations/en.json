@@ -13,9 +13,10 @@
         "step": {
             "user": {
                 "data": {
-                    "password": "Password",
                     "username": "Username",
-                    "scan_interval": "Poll interval in seconds (min. 10)"
+                    "password": "Password",
+                    "unique_id": "Plant UUID identifier",
+                    "scan_interval": "Scan interval in seconds (min. 10 s)"
                 }
             },
             "reauth_confirm": {

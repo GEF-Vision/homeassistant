@@ -1,6 +1,46 @@
 """ Contains all the data models used in inputs/outputs """
 
 from .announcement import Announcement
+from .api_v2_plant_consumption_history_energy_retrieve_period import ApiV2PlantConsumptionHistoryEnergyRetrievePeriod
+from .api_v2_plant_consumption_history_energy_retrieve_response_format import (
+    ApiV2PlantConsumptionHistoryEnergyRetrieveResponseFormat,
+)
+from .api_v2_plant_consumption_history_power_retrieve_period import ApiV2PlantConsumptionHistoryPowerRetrievePeriod
+from .api_v2_plant_consumption_history_power_retrieve_response_format import (
+    ApiV2PlantConsumptionHistoryPowerRetrieveResponseFormat,
+)
+from .api_v2_plant_device_control_history_retrieve_period import ApiV2PlantDeviceControlHistoryRetrievePeriod
+from .api_v2_plant_device_control_history_retrieve_response_format import (
+    ApiV2PlantDeviceControlHistoryRetrieveResponseFormat,
+)
+from .api_v2_plant_device_heatpump_history_retrieve_period import ApiV2PlantDeviceHeatpumpHistoryRetrievePeriod
+from .api_v2_plant_device_heatpump_history_retrieve_response_format import (
+    ApiV2PlantDeviceHeatpumpHistoryRetrieveResponseFormat,
+)
+from .api_v2_plant_device_sensor_history_retrieve_period import ApiV2PlantDeviceSensorHistoryRetrievePeriod
+from .api_v2_plant_device_sensor_history_retrieve_response_format import (
+    ApiV2PlantDeviceSensorHistoryRetrieveResponseFormat,
+)
+from .api_v2_plant_grid_interface_history_energy_retrieve_period import (
+    ApiV2PlantGridInterfaceHistoryEnergyRetrievePeriod,
+)
+from .api_v2_plant_grid_interface_history_energy_retrieve_response_format import (
+    ApiV2PlantGridInterfaceHistoryEnergyRetrieveResponseFormat,
+)
+from .api_v2_plant_grid_interface_history_power_retrieve_period import ApiV2PlantGridInterfaceHistoryPowerRetrievePeriod
+from .api_v2_plant_grid_interface_history_power_retrieve_response_format import (
+    ApiV2PlantGridInterfaceHistoryPowerRetrieveResponseFormat,
+)
+from .api_v2_plant_production_history_energy_retrieve_period import ApiV2PlantProductionHistoryEnergyRetrievePeriod
+from .api_v2_plant_production_history_energy_retrieve_response_format import (
+    ApiV2PlantProductionHistoryEnergyRetrieveResponseFormat,
+)
+from .api_v2_plant_production_history_power_retrieve_period import ApiV2PlantProductionHistoryPowerRetrievePeriod
+from .api_v2_plant_production_history_power_retrieve_response_format import (
+    ApiV2PlantProductionHistoryPowerRetrieveResponseFormat,
+)
+from .api_v2_plant_weather_history_retrieve_period import ApiV2PlantWeatherHistoryRetrievePeriod
+from .api_v2_plant_weather_history_retrieve_response_format import ApiV2PlantWeatherHistoryRetrieveResponseFormat
 from .auth_token import AuthToken
 from .consumption import Consumption
 from .consumption_energy import ConsumptionEnergy
@@ -59,6 +99,32 @@ from .paginated_announcement_list import PaginatedAnnouncementList
 from .paginated_plant_list import PaginatedPlantList
 from .panel_installation import PanelInstallation
 from .panel_installation_installation_type import PanelInstallationInstallationType
+from .patched_control import PatchedControl
+from .patched_control_device_type import PatchedControlDeviceType
+from .patched_control_output_state import PatchedControlOutputState
+from .patched_control_state import PatchedControlState
+from .patched_energymeter import PatchedEnergymeter
+from .patched_energymeter_device_type import PatchedEnergymeterDeviceType
+from .patched_energymeter_meter_type import PatchedEnergymeterMeterType
+from .patched_energymeter_state import PatchedEnergymeterState
+from .patched_heatpump import PatchedHeatpump
+from .patched_heatpump_device_state import PatchedHeatpumpDeviceState
+from .patched_heatpump_device_type import PatchedHeatpumpDeviceType
+from .patched_heatpump_operating_mode import PatchedHeatpumpOperatingMode
+from .patched_heatpump_state import PatchedHeatpumpState
+from .patched_inverter import PatchedInverter
+from .patched_inverter_device_type import PatchedInverterDeviceType
+from .patched_inverter_extended_state import PatchedInverterExtendedState
+from .patched_inverter_state import PatchedInverterState
+from .patched_panel_installation import PatchedPanelInstallation
+from .patched_panel_installation_installation_type import PatchedPanelInstallationInstallationType
+from .patched_plant import PatchedPlant
+from .patched_plant_state import PatchedPlantState
+from .patched_plant_timezone_name import PatchedPlantTimezoneName
+from .patched_sensor import PatchedSensor
+from .patched_sensor_device_type import PatchedSensorDeviceType
+from .patched_sensor_sensor_type import PatchedSensorSensorType
+from .patched_sensor_state import PatchedSensorState
 from .permission import Permission
 from .phase import Phase
 from .plant import Plant
@@ -73,3 +139,5 @@ from .sensor_state import SensorState
 from .state import State
 from .token import Token
 from .user import User
+from .weather import Weather
+from .weather_point import WeatherPoint

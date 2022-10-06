@@ -6,7 +6,8 @@
         "data": {
           "username": "[%key:common::config_flow::data::username%]",
           "password": "[%key:common::config_flow::data::password%]",
-          "scan_interval": "[%key:common::config_flow::data::poll_interval_s%]"
+          "unique_id": "[%key:common::config_flow::data::unique_id%]",
+          "scan_interval": "[%key:common::config_flow::data::scan_interval%]"
         }
       }
     },

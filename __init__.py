@@ -7,35 +7,70 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
+    CONF_UNIQUE_ID,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from httpx import ConnectError
-from .const import DOMAIN, VISION_BASE_URL
-from .coordinator import VisionPlantCoordinator
-from .api_client.models import Plant, AuthToken
+from .const import (
+    DOMAIN,
+    VISION_BASE_URL,
+    VISION_DEVICE_TYPE_INVERTER,
+    VISION_DEVICE_TYPE_ENERGYMETER,
+    VISION_DEVICE_TYPE_SENSOR,
+    VISION_DEVICE_TYPE_CONTROL,
+    VISION_METER_TYPE_GRID_INTERFACE,
+    VISION_METER_TYPE_CONSUMPTION,
+)
+from .coordinator import VisionUpdateCoordinator
+from .api_client.models import (
+    Plant,
+    AuthToken,
+    Control,
+    Inverter,
+    Energymeter,
+    Sensor,
+    Device,
+)
 from .api_client.client import Client, AuthenticatedClient
-from .api_client.api.plant import api_v2_plant_list
-from .api_client.api.authentication import api_v2_auth_token_create
+from .api_client.api.device import api_v2_plant_device_list
+from .api_client.api.plant import api_v2_plant_retrieve
+from .api_client.api.grid_interface import api_v2_plant_grid_interface_retrieve
+from .api_client.api.consumption import (
+    api_v2_plant_device_energymeter_list,
+    api_v2_plant_consumption_retrieve,
+)
+from .api_client.api.production import (
+    api_v2_plant_device_inverter_list,
+    api_v2_plant_production_retrieve,
+)
+from .api_client.api.sensor import api_v2_plant_device_sensor_list
+from .api_client.api.control import api_v2_plant_device_control_list
 import logging
 from typing import List
+from asyncio import Lock
 
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class GEFVision:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
-        self.plant_coordinators: List[VisionPlantCoordinator] = []
-        self.config = entry
-        self.hass = hass
-        self.client = None
+        self.coordinator: VisionUpdateCoordinator | None = None
+        self.inverters: List[Inverter] = []
+        self.energymeters: List[Energymeter] = []
+        self.sensors: List[Sensor] = []
+        self.controls: List[Control] = []
+        self.config: ConfigEntry = entry
+        self.hass: HomeAssistant = hass
+        self.client_mutex: Lock = Lock()
+        self.client: AuthenticatedClient = None
 
     async def initialize(self):
         try:
-            self.client = await VisionPlantCoordinator.authenticate_user(
+            self.client = await VisionUpdateCoordinator.authenticate_user(
                 self.config.data[CONF_USERNAME], self.config.data[CONF_PASSWORD]
             )
             if not self.client:
@@ -46,26 +81,44 @@ class GEFVision:
             raise ConfigEntryNotReady(
                 f"Connection failed with Vision - cannot authenticate: {self.config.data[CONF_USERNAME]}"
             ) from err
-        # Fetch plant list
         try:
-            data = await api_v2_plant_list.asyncio(client=self.client)
-            if not data or not data.results:
-                _LOGGER.error("User has no plants!")
-            # Create coordinators
-            for plant in data.results:
-                has_production = True if getattr(plant, "production") else False
-                has_energymeter = True if getattr(plant, "consumption") else False
-                coordinator = VisionPlantCoordinator(
-                    hass=self.hass,
-                    client=self.client,
-                    uuid=plant.uuid,
-                    name=f"{DOMAIN}_plants_{plant.uuid}",
-                    scan_interval=self.config.data[CONF_SCAN_INTERVAL],
-                    has_energymeter=has_energymeter,
-                    has_production=has_production,
-                )
-                await coordinator.async_config_entry_first_refresh()
-                self.plant_coordinators.append(coordinator)
+            # Fetch plant info
+            plant = await api_v2_plant_retrieve.asyncio(
+                client=self.client, uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            # Fetch energymeters
+            meters = await api_v2_plant_device_energymeter_list.asyncio(
+                client=self.client, plant_uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            inverters = await api_v2_plant_device_inverter_list.asyncio(
+                client=self.client, plant_uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            controls = await api_v2_plant_device_control_list.asyncio(
+                client=self.client, plant_uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            sensors = await api_v2_plant_device_sensor_list.asyncio(
+                client=self.client, plant_uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            production = await api_v2_plant_production_retrieve.asyncio(
+                client=self.client, uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            consumption = await api_v2_plant_consumption_retrieve.asyncio(
+                client=self.client, uuid=self.config.data[CONF_UNIQUE_ID]
+            )
+            self.coordinator = VisionUpdateCoordinator(
+                self.hass,
+                self.client,
+                self.config.data[CONF_UNIQUE_ID],
+                f"{DOMAIN}-plant-{self.config.data[CONF_UNIQUE_ID]}",
+                self.config.data[CONF_SCAN_INTERVAL],
+                meters,
+                inverters,
+                controls,
+                sensors,
+                production,
+                consumption,
+            )
+
         except ConnectError as err:
             raise ConfigEntryNotReady(
                 f"Connection failed to {VISION_BASE_URL}"
