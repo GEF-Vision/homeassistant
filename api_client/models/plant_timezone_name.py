@@ -391,7 +391,7 @@ class PlantTimezoneName(str, Enum):
     EGYPT = "Egypt"
     EIRE = "Eire"
     ETCGMT = "Etc/GMT"
-    ETCGMT0 = "Etc/GMT+0"
+    ETCGMT0 = "Etc/GMT0"
     ETCGMT1 = "Etc/GMT+1"
     ETCGMT10 = "Etc/GMT+10"
     ETCGMT11 = "Etc/GMT+11"

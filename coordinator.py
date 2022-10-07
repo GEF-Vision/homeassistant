@@ -125,13 +125,11 @@ class VisionUpdateCoordinator(DataUpdateCoordinator):
                 plant_uuid=self.uuid,
                 client=self.client,
             )
-            # In case of multiple inverters, fetch total production
-            if len(self.inverters) > 1:
-                self.production = await self.fetch_endpoint(
-                    endpoint=api_v2_plant_production_retrieve,
-                    uuid=self.uuid,
-                    client=self.client,
-                )
+            self.production = await self.fetch_endpoint(
+                endpoint=api_v2_plant_production_retrieve,
+                uuid=self.uuid,
+                client=self.client,
+            )
         if self.has_energymeters:
             self.energymeters = await self.fetch_endpoint(
                 endpoint=api_v2_plant_device_energymeter_list,

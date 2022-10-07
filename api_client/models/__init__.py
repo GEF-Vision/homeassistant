@@ -13,10 +13,6 @@ from .api_v2_plant_device_control_history_retrieve_period import ApiV2PlantDevic
 from .api_v2_plant_device_control_history_retrieve_response_format import (
     ApiV2PlantDeviceControlHistoryRetrieveResponseFormat,
 )
-from .api_v2_plant_device_heatpump_history_retrieve_period import ApiV2PlantDeviceHeatpumpHistoryRetrievePeriod
-from .api_v2_plant_device_heatpump_history_retrieve_response_format import (
-    ApiV2PlantDeviceHeatpumpHistoryRetrieveResponseFormat,
-)
 from .api_v2_plant_device_sensor_history_retrieve_period import ApiV2PlantDeviceSensorHistoryRetrievePeriod
 from .api_v2_plant_device_sensor_history_retrieve_response_format import (
     ApiV2PlantDeviceSensorHistoryRetrieveResponseFormat,
