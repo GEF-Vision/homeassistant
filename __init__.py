@@ -1,6 +1,7 @@
 """The GEF Vision integration."""
-from __future__ import annotations
+import logging
 from datetime import timedelta
+from typing import List
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     Platform,
@@ -46,9 +47,6 @@ from .api_client.api.production import (
 )
 from .api_client.api.sensor import api_v2_plant_device_sensor_list
 from .api_client.api.control import api_v2_plant_device_control_list
-import logging
-from typing import List
-from asyncio import Lock
 
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH]
@@ -65,7 +63,6 @@ class GEFVision:
         self.controls: List[Control] = []
         self.config: ConfigEntry = entry
         self.hass: HomeAssistant = hass
-        self.client_mutex: Lock = Lock()
         self.client: AuthenticatedClient = None
 
     async def initialize(self):
@@ -79,13 +76,10 @@ class GEFVision:
                 )
         except ConnectError as err:
             raise ConfigEntryNotReady(
-                f"Connection failed with Vision - cannot authenticate: {self.config.data[CONF_USERNAME]}"
+                f"Connection failed with Vision - cannot authenticate: \
+                    {self.config.data[CONF_USERNAME]}"
             ) from err
         try:
-            # Fetch plant info
-            plant = await api_v2_plant_retrieve.asyncio(
-                client=self.client, uuid=self.config.data[CONF_UNIQUE_ID]
-            )
             # Fetch energymeters
             meters = await api_v2_plant_device_energymeter_list.asyncio(
                 client=self.client, plant_uuid=self.config.data[CONF_UNIQUE_ID]

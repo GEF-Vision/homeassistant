@@ -1,3 +1,6 @@
+import logging
+from datetime import timedelta
+from typing import List
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -30,12 +33,7 @@ from .api_client.api.consumption import (
     api_v2_plant_consumption_retrieve,
     api_v2_plant_device_energymeter_list,
 )
-from .api_client.api.plant import api_v2_plant_retrieve
 from .const import VISION_BASE_URL, ERROR_SCAN_INTERVAL
-from datetime import timedelta
-from asyncio import Lock
-import logging
-from typing import List, Any
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,6 +69,7 @@ class VisionUpdateCoordinator(DataUpdateCoordinator):
         self.has_sensors = True if self.sensors else False
         self.has_production = True if self.inverters else False
         self.has_controls = True if self.controls else False
+        self.has_sensors = True if self.sensors else False
 
         super().__init__(
             hass=hass,
@@ -102,14 +101,22 @@ class VisionUpdateCoordinator(DataUpdateCoordinator):
                 return meter.to_dict()
         raise ValueError("Unkown meter ID")
 
-    def get_inverter_values(self, inverter_id: int):
+    def get_inverter_values(self, inverter_id: int | str):
+        if inverter_id == "total-production":
+            return self.get_total_production()
         for inverter in self.inverters:
             if inverter.id == inverter_id:
                 return inverter.to_dict()
-        raise ValueError("Unknown inverter ID")
+        raise ValueError("Unknown inverter ID:", inverter_id)
 
     def get_total_production(self):
         return self.production.primary.to_dict() if self.production else {}
+
+    def get_sensor_values(self, sensor_id: int):
+        for sensor in self.sensors:
+            if sensor.id == sensor_id:
+                return sensor.to_dict()
+        raise ValueError("Unknown sensor ID:", sensor_id)
 
     async def _async_update_data(self):
         if self.has_production:
@@ -142,6 +149,13 @@ class VisionUpdateCoordinator(DataUpdateCoordinator):
         if self.has_controls:
             self.controls = await self.fetch_endpoint(
                 endpoint=api_v2_plant_device_control_list,
+                plant_uuid=self.uuid,
+                client=self.client,
+            )
+
+        if self.has_sensors:
+            self.sensors = await self.fetch_endpoint(
+                endpoint=api_v2_plant_device_sensor_list,
                 plant_uuid=self.uuid,
                 client=self.client,
             )

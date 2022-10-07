@@ -2,30 +2,18 @@ import operator
 from functools import reduce
 import logging
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .coordinator import VisionUpdateCoordinator
-from .api_client.models import Inverter, Energymeter, Control, Sensor
+from .entity import EntityDescriptionFactory, VisionAPIEntity
+from .api_client.models import Inverter, Energymeter, Sensor
 from .const import (
-    CT_SENSOR_ENTITY_DESCRIPTION,
-    TEMPERATURE_SENSOR_ENTITY_DESCRIPTION,
     DOMAIN,
-    generate_inverter_entity_descriptions,
-    generate_energy_entity_descriptions,
-    generate_power_entity_descriptions,
-    generate_energymeter_entity_descriptions,
-    generate_consumption_entity_descriptions,
-    generate_grid_interface_entity_descriptions,
-    generate_current_sensor_description,
-    generate_temperature_sensor_description,
-    generate_entity_description,
     VisionSensorEntityDescription,
 )
-from typing import List
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class VisionAPISensor(CoordinatorEntity, SensorEntity):
+class VisionAPISensor(VisionAPIEntity, SensorEntity):
     def __init__(
         self,
         coordinator: VisionUpdateCoordinator,
@@ -37,9 +25,14 @@ class VisionAPISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.sensor_id = sensor_id
         self.entity_description = description
-        self._attr_unique_id = f"{coordinator.uuid}-{description.key}"
+        self._attr_unique_id = (
+            f"{device_type}-{sensor_id}-{coordinator.uuid}-{description.key}"
+        )
         self._attr_name = f"{self.entity_description.name}"
-        self.device_identifier = f"{device_type}-{coordinator.uuid}-{sensor_id}"
+        if device_type == "plant":
+            self.device_identifier = f"plant-{coordinator.uuid}"
+        else:
+            self.device_identifier = f"{device_type}-{sensor_id}-{coordinator.uuid}"
         self._device_info = {
             "identifiers": {(DOMAIN, self.device_identifier)},
             "name": self.device_identifier,
@@ -68,15 +61,6 @@ class VisionSensor(VisionAPISensor):
 
 
 class VisionEnergymeterPhaseSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(coordinator, description, sensor_id, "meter", model_name)
-
     @property
     def native_value(self):
         data = self.coordinator.get_energymeter_values(self.sensor_id)
@@ -88,33 +72,13 @@ class VisionEnergymeterPhaseSensor(VisionAPISensor):
 
 
 class VisionConsumptionSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(
-            coordinator, description, sensor_id, "consumption", "PlantTotalConsumption"
-        )
-
     @property
     def native_value(self):
         values = self.coordinator.get_energymeter_values("total-consumption")["primary"]
         return self.get_value_from_path(values)
 
 
-class VisionInverterSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(coordinator, description, sensor_id, "inverter", model_name)
-
+class VisionProductionSensor(VisionAPISensor):
     @property
     def native_value(self):
         values = self.coordinator.get_inverter_values(self.sensor_id)
@@ -122,49 +86,27 @@ class VisionInverterSensor(VisionAPISensor):
 
 
 class VisionPlantSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(coordinator, description, sensor_id, "plant", model_name)
-
     @property
     def native_value(self):
         values = self.coordinator.get_total_production()
         return self.get_value_from_path(values)
 
 
-class VisionEnergymeterPowerSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(coordinator, description, sensor_id, "meter", model_name)
-        self.direction = description.key.split("-")[-1]
+class VisionImportExportSensor(VisionAPISensor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Last part of entity description key defines direction (import/export)
+        self.direction = self.entity_description.key.split("-")[-1]
 
+
+class VisionEnergymeterPowerSensor(VisionImportExportSensor):
     @property
     def native_value(self):
         values = self.coordinator.get_energymeter_values(self.sensor_id)
         return values["power"][self.direction]
 
 
-class VisionEnergymeterSensor(VisionAPISensor):
-    def __init__(
-        self,
-        coordinator: VisionUpdateCoordinator,
-        description: VisionSensorEntityDescription,
-        sensor_id: int | str,
-        model_name: str | None,
-    ):
-        super().__init__(coordinator, description, sensor_id, "meter", model_name)
-        self.direction = self.entity_description.key.split("-")[-1]
-
+class VisionEnergymeterSensor(VisionImportExportSensor):
     @property
     def native_value(self):
         values = self.coordinator.get_energymeter_values(self.sensor_id)
@@ -172,105 +114,122 @@ class VisionEnergymeterSensor(VisionAPISensor):
         return self.get_value_from_path(values, True)
 
 
-class EntityFactory:
+class SensorFactory:
     @staticmethod
-    def generate_inverter(inverter: Inverter, coordinator: VisionUpdateCoordinator):
+    def create_inverter(coordinator: VisionUpdateCoordinator, inverter: Inverter):
         entities = []
-        descriptions = generate_inverter_entity_descriptions(inverter.id)
-        for description in descriptions:
+        descriptions = EntityDescriptionFactory.generate_inverter_entity_descriptions(
+            inverter
+        )
+        for desc in descriptions:
             entities.append(
-                VisionInverterSensor(
-                    coordinator, description, inverter.id, inverter.model_name
+                VisionProductionSensor(
+                    coordinator, desc, inverter.id, "inverter", inverter.model_name
                 )
             )
         return entities
 
     @staticmethod
-    def generate_production(coordinator: VisionUpdateCoordinator):
+    def create_production(coordinator: VisionUpdateCoordinator):
         entities = []
-        descriptions = generate_inverter_entity_descriptions("total")
-        for description in descriptions:
+        descriptions = (
+            EntityDescriptionFactory.generate_total_production_entity_descriptions()
+        )
+
+        for desc in descriptions:
             entities.append(
-                VisionPlantSensor(
-                    coordinator, description, "total", "PlantProductionTotal"
+                VisionProductionSensor(
+                    coordinator,
+                    desc,
+                    "total-production",
+                    "plant",
+                    "Power Plant",
                 )
             )
         return entities
 
     @staticmethod
-    def generate_energymeter_entitites(
-        coordinator: VisionUpdateCoordinator,
-        power_descriptions: List[VisionSensorEntityDescription],
-        energy_descriptions: List[VisionSensorEntityDescription],
-        phase_descriptions: List[VisionSensorEntityDescription],
-        meter_id: int,
-        meter_name: str | None = None,
-    ):
+    def create_grid_interface(coordinator: VisionUpdateCoordinator):
         entities = []
-        if not meter_name:
-            meter_name = "Energymeter"
-        for description in energy_descriptions:
+        (
+            energy,
+            power,
+            phase,
+        ) = EntityDescriptionFactory.generate_grid_interface_entity_descriptions()
+
+        for desc in energy:
             entities.append(
-                VisionEnergymeterSensor(coordinator, description, meter_id, meter_name)
+                VisionEnergymeterSensor(
+                    coordinator, desc, "grid-interface", "plant", "Power Plant"
+                )
             )
-        for description in power_descriptions:
+        for desc in power:
             entities.append(
                 VisionEnergymeterPowerSensor(
-                    coordinator, description, meter_id, meter_name
+                    coordinator, desc, "grid-interface", "plant", "Power Plant"
                 )
             )
-        for description in phase_descriptions:
+        for desc in phase:
             entities.append(
                 VisionEnergymeterPhaseSensor(
-                    coordinator, description, meter_id, meter_name
+                    coordinator, desc, "grid-interface", "plant", "Power Plant"
                 )
             )
         return entities
 
     @staticmethod
-    def generate_energymeter(
-        coordinator: VisionUpdateCoordinator,
-        meter: Energymeter,
-        meter_type: str = "consumption",
-    ):
-        energy, power, phase = generate_energymeter_entity_descriptions(
-            meter_type, meter.id
-        )
-        entities = EntityFactory.generate_energymeter_entitites(
-            coordinator, power, energy, phase, meter.id, meter.name
-        )
-        return entities
-
-    @staticmethod
-    def generate_grid_interface(
-        coordinator: VisionUpdateCoordinator, meter: Energymeter
-    ):
-        energy, power, phase = generate_grid_interface_entity_descriptions(meter.id)
-        entities = EntityFactory.generate_energymeter_entitites(
-            coordinator, power, energy, phase, "grid-interface", "PlantGridInterface"
-        )
-        return entities
-
-    @staticmethod
-    def generate_total_consumption(coordinator: VisionUpdateCoordinator):
+    def create_energymeter(coordinator: VisionUpdateCoordinator, meter: Energymeter):
         entities = []
-        for description in generate_consumption_entity_descriptions():
+        (
+            energy,
+            power,
+            phase,
+        ) = EntityDescriptionFactory.generate_energymeter_entity_descriptions(meter)
+
+        for desc in energy:
+            entities.append(
+                VisionEnergymeterSensor(
+                    coordinator, desc, meter.id, "meter", meter.name
+                )
+            )
+        for desc in power:
+            entities.append(
+                VisionEnergymeterPowerSensor(
+                    coordinator, desc, meter.id, "meter", meter.name
+                )
+            )
+        for desc in phase:
+            entities.append(
+                VisionEnergymeterPhaseSensor(
+                    coordinator, desc, meter.id, "meter", meter.name
+                )
+            )
+        return entities
+
+    @staticmethod
+    def create_total_consumption(coordinator: VisionUpdateCoordinator):
+        entities = []
+        descriptions = (
+            EntityDescriptionFactory.generate_total_consumption_entity_descriptions()
+        )
+
+        for desc in descriptions:
             entities.append(
                 VisionConsumptionSensor(
-                    coordinator, description, "consumption", "PlantTotalConsumption"
+                    coordinator, desc, "total-consumption", "plant", "Power Plant"
                 )
             )
         return entities
 
     @staticmethod
-    def generate_ct(coordinator: VisionUpdateCoordinator, sensor: Sensor):
-        description = generate_current_sensor_description(sensor.id, sensor.name)
-        return [VisionSensor(coordinator, description, sensor.id, "CT")]
+    def create_current_sensor(coordinator: VisionUpdateCoordinator, sensor: Sensor):
+        desc = EntityDescriptionFactory.generate_ct(sensor)
+        return [VisionSensor(coordinator, desc, sensor.id, "current-transformer")]
 
     @staticmethod
-    def generate_temperature(coordinator: VisionUpdateCoordinator, sensor: Sensor):
-        description = generate_temperature_sensor_description(sensor.id, sensor.name)
-        return [VisionSensor(coordinator, description, sensor.id, "Temperature")]
+    def create_temperature_sensor(coordinator: VisionUpdateCoordinator, sensor: Sensor):
+        desc = EntityDescriptionFactory.generate_temperature(sensor)
+        return [VisionSensor(coordinator, desc, sensor.id, "temperature")]
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
@@ -279,29 +238,30 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
     entities = []
     for inverter in coordinator.inverters:
         # Entitites for each inverter
-        entities.extend(EntityFactory.generate_inverter(inverter, coordinator))
-    if len(coordinator.inverters) > 1:
-        # Entities for total production
-        entities.extend(EntityFactory.generate_production(coordinator))
-    if coordinator.grid_interface:
-        # Entities for grid interface
-        entities.extend(
-            EntityFactory.generate_grid_interface(
-                coordinator, coordinator.grid_interface
-            )
-        )
-    for meter in coordinator.energymeters:
-        if meter.meter_type == 1:
-            # Entities for consumption meters
-            entities.extend(EntityFactory.generate_energymeter(coordinator, meter))
-    if coordinator.grid_interface or len(coordinator.consumption_meters) > 0:
-        # Entities for total consumption
-        entities.extend(EntityFactory.generate_total_consumption(coordinator))
-    for sensor in coordinator.sensors:
-        if sensor.type == "current":
-            # Entities for CT
-            entities.extend(EntityFactory.generate_ct(coordinator, sensor))
-        elif sensor.type == "temperature":
-            # Entities for temperature sensors
-            entities.extend(EntityFactory.generate_temperature(coordinator, sensor))
+        entities.extend(SensorFactory.create_inverter(coordinator, inverter))
+
+        if len(coordinator.inverters) > 0:
+            # Entities for total production
+            entities.extend(SensorFactory.create_production(coordinator))
+        if coordinator.grid_interface:
+            # Entities for grid interface
+            entities.extend(SensorFactory.create_grid_interface(coordinator))
+        for meter in coordinator.energymeters:
+            if meter.meter_type == 1:
+                # Entities for consumption meters
+                entities.extend(SensorFactory.create_energymeter(coordinator, meter))
+        if coordinator.grid_interface or len(coordinator.consumption_meters) > 0:
+            # Entities for total consumption
+            entities.extend(SensorFactory.create_total_consumption(coordinator))
+        for sensor in coordinator.sensors:
+            if sensor.sensor_type == "current":
+                # Entities for CT
+                entities.extend(
+                    SensorFactory.create_current_sensor(coordinator, sensor)
+                )
+            elif sensor.sensor_type == "temperature":
+                # Entities for temperature sensors
+                entities.extend(
+                    SensorFactory.create_temperature_sensor(coordinator, sensor)
+                )
     async_add_entities(entities)

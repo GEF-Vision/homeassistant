@@ -1,29 +1,35 @@
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity import DeviceInfo
-from .const import DOMAIN
-from typing import Any
 import logging
+from typing import Any
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from .entity import EntityDescriptionFactory, VisionAPIEntity
+from .const import DOMAIN
+from .coordinator import VisionUpdateCoordinator
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class VisionSwitchEntity(CoordinatorEntity, SwitchEntity):
+class VisionSwitchEntity(VisionAPIEntity, SwitchEntity):
     def __init__(
-        self, coordinator: Any, description: SwitchEntityDescription, control_id: int
+        self,
+        coordinator: VisionUpdateCoordinator,
+        description: SwitchEntityDescription,
+        control_id: int | str,
     ):
         super().__init__(coordinator)
-        self.entity_description = description
-        self._attr_unique_id = f"{coordinator.uuid}-control-{control_id}"
-        self._attr_name = f"control-{control_id}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.uuid)},
-            manufacturer="GreenEnergy Finland Oy",
-            name=coordinator.name,
-        )
         self.control_id = control_id
+        self.entity_description = description
+        self._attr_unique_id = (
+            f"control-{control_id}-{coordinator.uuid}-{description.key}"
+        )
+        self._attr_name = f"{self.entity_description.name}"
+        self.device_identifier = f"plant-{coordinator.uuid}"
+        self._device_info = {
+            "identifiers": {(DOMAIN, self.device_identifier)},
+            "name": self.device_identifier,
+            "default_manufacturer": "GEF",
+            "default_model": f"Control-{self.control_id}",
+        }
 
     @property
     def available(self) -> bool:
@@ -49,12 +55,8 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
     entities = []
     if base.coordinator.controls:
         for control in base.coordinator.controls:
-            if control.name:
-                keystr = f"control-{control.name}-{control.id}"
-            else:
-                keystr = f"control-{control.id}"
-            description = SwitchEntityDescription(
-                key=keystr, name=keystr.capitalize().replace("-", " ")
+            description = EntityDescriptionFactory.generate_control_entity_description(
+                control
             )
             entities.append(
                 VisionSwitchEntity(base.coordinator, description, control.id)
