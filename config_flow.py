@@ -84,7 +84,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         if self._reauth:
-            entry = await self.async_set_unique_id(self._username.lower())
+            entry = await self.async_set_unique_id(self._unique_id)
             if entry:
                 self.hass.config_entries.async_update_entry(
                     entry, data={**entry.data, CONF_PASSWORD: self._password}
@@ -107,14 +107,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is not None:
-            await self.async_set_unique_id(user_input[CONF_USERNAME].lower())
-            self._abort_if_unique_id_configured()
-
             self._reauth = False
             self._scan_interval = user_input[CONF_SCAN_INTERVAL]
             self._username = user_input[CONF_USERNAME]
             self._password = user_input[CONF_PASSWORD]
             self._unique_id = user_input[CONF_UNIQUE_ID]
+            await self.async_set_unique_id(self._unique_id)
+            self._abort_if_unique_id_configured()
             return await self._async_validate_config()
 
         return self.async_show_form(step_id="user", data_schema=GEF_VISION_USER_SCHEMA)
